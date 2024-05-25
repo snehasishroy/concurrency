@@ -15,11 +15,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-public class WaitNotifySemaphoreTest {
+public class CASSemaphoreTest {
 
     @Test
     public void testSemaphoreTwoThreads() throws InterruptedException {
-        CustomSemaphore semaphore = new WaitNotifySemaphore(1);
+        CustomSemaphore semaphore = new CASSemaphore(1);
         CountDownLatch latch1 = new CountDownLatch(1);
         CountDownLatch latch2 = new CountDownLatch(1);
         log.info("Trying to acquire");
@@ -63,7 +63,7 @@ public class WaitNotifySemaphoreTest {
 
     @Test
     public void testSemaphoreMultipleThreads() throws InterruptedException {
-        CustomSemaphore semaphore = new WaitNotifySemaphore(1);
+        CustomSemaphore semaphore = new CASSemaphore(1);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger concurrentAcquistion = new AtomicInteger();
         AtomicInteger totalOps = new AtomicInteger();
