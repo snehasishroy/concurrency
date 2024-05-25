@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WaitNotifySemaphore implements CustomSemaphore {
 
     private final Object lock;
-    int tokens;
+    volatile int tokens;
 
     public WaitNotifySemaphore(int count) {
         tokens = count;
@@ -16,10 +16,9 @@ public class WaitNotifySemaphore implements CustomSemaphore {
     @Override
     public void acquire() throws InterruptedException {
         synchronized (lock) {
-            int cur = tokens;
-            if (cur > 0) {
+            if (tokens > 0) {
                 tokens--;
-                log.info("Acquired token");
+                log.info("Acquired token, prev {}, cur {}", tokens + 1, tokens);
             } else {
                 log.info("No token available, waiting for someone to release");
                 lock.wait();
