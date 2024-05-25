@@ -1,4 +1,3 @@
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.example.CustomSemaphore;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -90,7 +88,6 @@ public class WaitNotifySemaphoreTest {
         }
         latch.countDown();
         Thread.sleep(1000);
-        log.info("TotalOps, {}", totalOps);
-
+        res.forEach(val -> Assertions.assertEquals(1, val));
     }
 }
