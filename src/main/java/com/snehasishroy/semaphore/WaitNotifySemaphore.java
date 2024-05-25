@@ -1,4 +1,4 @@
-package org.example;
+package com.snehasishroy.semaphore;
 
 import lombok.extern.slf4j.Slf4j;
 

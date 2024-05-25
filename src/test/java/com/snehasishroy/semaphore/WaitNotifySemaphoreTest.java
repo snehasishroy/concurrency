@@ -1,7 +1,7 @@
+package com.snehasishroy.semaphore;
+
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
-import org.example.CustomSemaphore;
-import org.example.WaitNotifySemaphore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
