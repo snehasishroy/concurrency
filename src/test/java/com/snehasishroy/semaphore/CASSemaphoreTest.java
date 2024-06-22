@@ -61,20 +61,26 @@ public class CASSemaphoreTest {
         assertTrue(isAcquired2.get());
     }
 
+    /**
+     * Asserts that only thread has acquired the semaphore at any given point in time.
+     * This is possible by passing a reference to AtomicInteger to all the threads which then increments the semaphore
+     * after acquiring the lock.
+     */
     @Test
     public void testSemaphoreMultipleThreads() throws InterruptedException {
         CustomSemaphore semaphore = new CASSemaphore(1);
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch ready = new CountDownLatch(1);
         AtomicInteger concurrentAcquistion = new AtomicInteger();
         AtomicInteger totalOps = new AtomicInteger();
         List<Integer> res = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             new Thread(() -> {
                 try {
-                    latch.await(); // wait for all threads to be initialized
+                    ready.await(); // wait for all threads to be initialized
                     semaphore.acquire();
                     totalOps.incrementAndGet();
                     int val = concurrentAcquistion.incrementAndGet();
+                    // if only one of them acquires the lock at any given point in time - then this value should always be 1
                     log.info("Val is {}", val);
                     res.add(val);
                     concurrentAcquistion.decrementAndGet();
@@ -86,7 +92,7 @@ public class CASSemaphoreTest {
                 }
             }).start();
         }
-        latch.countDown();
+        ready.countDown();
         Thread.sleep(1000);
         res.forEach(val -> Assertions.assertEquals(1, val));
     }
