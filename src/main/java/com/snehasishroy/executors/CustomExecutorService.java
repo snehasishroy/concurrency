@@ -17,5 +17,5 @@ public interface CustomExecutorService {
     /**
      * Returns a future of the submitted task
      */
-    <T> Future<T> submit(Callable<T> runnable);
+    <T> Future<T> submit(Callable<T> runnable) throws InterruptedException;
 }

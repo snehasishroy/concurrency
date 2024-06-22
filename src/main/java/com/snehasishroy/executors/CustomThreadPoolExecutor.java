@@ -1,5 +1,6 @@
 package com.snehasishroy.executors;
 
+import com.google.common.base.Stopwatch;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -9,11 +10,10 @@ import java.util.concurrent.*;
 @Slf4j
 public class CustomThreadPoolExecutor implements CustomExecutorService {
     private final LinkedBlockingQueue<Runnable> workQueue;
-    private final List<Thread> threads;
 
     public CustomThreadPoolExecutor(int limit) {
         this.workQueue = new LinkedBlockingQueue<>(limit);
-        threads = new ArrayList<>(limit);
+        List<Thread> threads = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++) {
             threads.add(new Thread(() -> {
                 try {
@@ -48,49 +48,79 @@ public class CustomThreadPoolExecutor implements CustomExecutorService {
         return workQueue.offer(new FutureWork<>(callable));
     }
 
-    public <T> Future<T> submit(Callable<T> callable) {
+    public <T> Future<T> submit(Callable<T> callable) throws InterruptedException {
         FutureWork<T> future = new FutureWork<>(callable);
-        workQueue.offer(future);
+        workQueue.put(future);
         return future;
     }
 
     private static class FutureWork<T> implements Future<T>, Runnable {
         private final Callable<T> callable;
         private T result;
+        private final Object lock;
 
         public FutureWork(Callable<T> callable) {
             this.callable = callable;
+            lock = new Object();
         }
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean isCancelled() {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean isDone() {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public T get() throws InterruptedException, ExecutionException {
+            synchronized (lock) {
+                while (result == null) {
+                    lock.wait();
+                }
+            }
             return result;
         }
 
         @Override
         public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-            return result;
+            Stopwatch timer = Stopwatch.createStarted();
+            long timeoutMillis = unit.toMillis(timeout);
+            long timeRemainingMillis = timeoutMillis;
+            synchronized (lock) {
+                while (true) {
+                    lock.wait(timeRemainingMillis);
+                    log.info("Waking up from the lock");
+                    if (result != null) {
+                        log.info("Result is present, returning it");
+                        return result;
+                    }
+                    long elapsedMillis = timer.elapsed(TimeUnit.MILLISECONDS);
+                    log.info("Time elapsed {} ms", elapsedMillis);
+                    if (elapsedMillis >= timeoutMillis) {
+                        throw new TimeoutException();
+                    }
+                    timeRemainingMillis = timeoutMillis - elapsedMillis;
+                    log.info("Time remaining {} ms", timeRemainingMillis);
+                }
+            }
         }
 
         @Override
         public void run() {
             try {
-                result = callable.call();
+                T result = callable.call();
+                synchronized (lock) {
+                    this.result = result;
+                    lock.notify();
+                }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-public class CustomThreadPoolExecutorTest {
+public class CustomThreadPoolExecutorRunnableTest {
 
     @Test
     public void testSingleExecute() throws InterruptedException {
@@ -34,6 +34,7 @@ public class CustomThreadPoolExecutorTest {
         Duration time = timer.elapsed();
         log.info("Task executed");
         log.info("Time taken {} seconds", time.toSeconds());
+        // each task takes around 1 sec to execute so 2 tasks should complete between 2 and 3 seconds
         assertTrue((time.toSeconds() >= 2) && (time.toSeconds() <= 3));
     }
 
@@ -55,9 +56,6 @@ public class CustomThreadPoolExecutorTest {
     public void testMultipleExecute() throws InterruptedException {
         CustomThreadPoolExecutor executor = new CustomThreadPoolExecutor(2);
         // submit 5 tasks to a pool of 2 threads
-        // 2 tasks will be immediately consumed
-        // next 2 tasks will be successfully queued
-        // next 1 task will fail to be queued
         AtomicInteger counter = new AtomicInteger();
         List<Integer> res = new ArrayList<>();
         CountDownLatch allDone = new CountDownLatch(5);
@@ -81,12 +79,6 @@ public class CustomThreadPoolExecutorTest {
             int count = counter.incrementAndGet();
             res.add(count);
             log.info("Task {} running", id);
-            try {
-                // this is required so that the time to execute a task is greater than the time to submit 5 tasks
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
             counter.decrementAndGet();
             allDone.countDown();
             log.info("Finished task {}", id);
