@@ -7,9 +7,11 @@ public final class WaitNotifySemaphore implements CustomSemaphore {
 
     private final Object lock;
     /**
+     * <pre>
      * No point in making this volatile as we already have a lock that causes happens before relationship.
      * Synchronized methods and blocks provide mutual exclusion guarantees and visibility guarantees i.e. that the changes made by one
      * thread to the shared data are visible to other threads to maintain data consistency.
+     *
      * Volatile is useful in scenarios where there is no mutual exclusion, but you still want the visibility aspect of the data change.
      * Volatile keyword introduces the happens before relationship - anything that has happened before writing to a volatile field, will be
      * visible to the another thread reading the same volatile field. So if there is only one volatile field and thread 1 makes changes to 3 other
@@ -17,6 +19,7 @@ public final class WaitNotifySemaphore implements CustomSemaphore {
      *
      * Practically volatile should be used when setting a flag or a value - as a simple signalling mechanism - so that value to is visible to other threads.
      * If you are doing a read, modify, write, then mutual exclusion should be used to avoid lost updates.
+     * </pre>
      * <a href="https://www.baeldung.com/java-volatile">Reference</a>
      */
     private int tokens; //
