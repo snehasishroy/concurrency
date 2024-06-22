@@ -29,30 +29,38 @@ public class CustomThreadPoolExecutor implements CustomExecutorService {
                 }
             }, "worker-" + i));
         }
+        // wait for all the threads to be created before starting them
         for (Thread thread : threads) {
             thread.start();
         }
     }
 
-//    public static void main(String[] args) {
-//        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-//        Executors.newFixedThreadPool(10).
-//        Executors.newFixedThreadPool()
-//        scheduledExecutorService.schedule();
-//        scheduledExecutorService.scheduleAtFixedRate()
-//
-//    }
-
+    /**
+     * If the queue is full, then this method should return false
+     */
     @Override
     public boolean execute(Runnable runnable) {
         return workQueue.offer(runnable);
     }
 
-    public Future<?> submit(Runnable runnable) {
-        return null;
+    @Override
+    public <T> boolean execute(Callable<T> callable) {
+        return workQueue.offer(new FutureWork<>(callable));
     }
 
-    private class Work<V> implements Future<V> {
+    public <T> Future<T> submit(Callable<T> callable) {
+        FutureWork<T> future = new FutureWork<>(callable);
+        workQueue.offer(future);
+        return future;
+    }
+
+    private static class FutureWork<T> implements Future<T>, Runnable {
+        private final Callable<T> callable;
+        private T result;
+
+        public FutureWork(Callable<T> callable) {
+            this.callable = callable;
+        }
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
@@ -70,13 +78,22 @@ public class CustomThreadPoolExecutor implements CustomExecutorService {
         }
 
         @Override
-        public V get() throws InterruptedException, ExecutionException {
-            return null;
+        public T get() throws InterruptedException, ExecutionException {
+            return result;
         }
 
         @Override
-        public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-            return null;
+        public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            return result;
+        }
+
+        @Override
+        public void run() {
+            try {
+                result = callable.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
