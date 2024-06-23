@@ -1,8 +1,7 @@
 package com.snehasishroy.executors;
 
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public interface CustomScheduledCustomExecutorService extends CustomExecutorService {
+public interface CustomScheduledExecutorService extends CustomExecutorService {
     void scheduleAtFixedRate(Runnable runnable, int delay, TimeUnit unit);
 }
