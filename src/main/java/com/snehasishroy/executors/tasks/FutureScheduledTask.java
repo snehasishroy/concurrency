@@ -1,27 +1,46 @@
 package com.snehasishroy.executors.tasks;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Queue;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.PriorityQueue;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
-public class FutureScheduledTask<T> implements Future<T>, Runnable {
-    private final Queue<Runnable> queue;
+public class FutureScheduledTask<T> implements Future<T>, Runnable, Task {
+    private final PriorityQueue<FutureScheduledTask<?>> queue;
     private final Callable<T> callable;
     private final long repeatAfterNanos; // repeat after
-    private final long executionAtNanos; // scheduled execution time
+    @Getter private final long executionAtNanos; // scheduled execution time
     private T result; // stored result
+    private final String taskID;
 
     private final Lock lock = new ReentrantLock();
 
-    public FutureScheduledTask(Callable<T> callable, long repeatAfterNanos, Queue<Runnable> queue) {
+    public FutureScheduledTask(Callable<T> callable, long repeatAfterNanos, PriorityQueue<FutureScheduledTask<?>> queue) {
         this.callable = callable;
         this.repeatAfterNanos = repeatAfterNanos;
         executionAtNanos = repeatAfterNanos + System.nanoTime();
         this.queue = queue;
+        taskID = UUID.randomUUID().toString();
+        log.info("Submitting task with ID {}", taskID);
+    }
+
+    public FutureScheduledTask(Runnable runnable, long repeatAfterNanos, PriorityQueue<FutureScheduledTask<?>> queue) {
+        this.callable = () -> {
+            runnable.run();
+            return null;
+        };
+        this.repeatAfterNanos = repeatAfterNanos;
+        executionAtNanos = repeatAfterNanos + System.nanoTime();
+        this.queue = queue;
+        taskID = UUID.randomUUID().toString();
+        log.info("Submitting task with ID {}, execution time {}", taskID, new Date(TimeUnit.NANOSECONDS.toMillis(executionAtNanos)));
     }
 
     @Override
@@ -33,7 +52,7 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable {
             lock.unlock();
             if (repeatAfterNanos > 0) {
                 // add it back to the queue
-                log.info("Adding the task back to the queue");
+                log.info("Adding the TaskID {} back to the queue", taskID);
                 queue.add(new FutureScheduledTask<>(callable, repeatAfterNanos, queue));
             }
         } catch (Exception e) {
@@ -65,5 +84,14 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable {
     @Override
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return null;
+    }
+
+    @Override
+    public String getID() {
+        return taskID;
+    }
+
+    public long getDelayNanos() {
+        return executionAtNanos - System.nanoTime();
     }
 }
