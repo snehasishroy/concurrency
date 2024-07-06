@@ -33,7 +33,8 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable {
             lock.unlock();
             if (repeatAfterNanos > 0) {
                 // add it back to the queue
-                queue.add(new FutureScheduledTask<T>(callable, repeatAfterNanos, queue));
+                log.info("Adding the task back to the queue");
+                queue.add(new FutureScheduledTask<>(callable, repeatAfterNanos, queue));
             }
         } catch (Exception e) {
             log.error("Error while calling the callable", e);

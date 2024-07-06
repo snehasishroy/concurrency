@@ -42,14 +42,21 @@ public class CustomThreadPoolExecutor implements CustomExecutorService {
      */
     @Override
     public boolean execute(Runnable runnable) {
-        return workQueue.offer(runnable);
+        return workQueue.offer(new FutureTask<>(runnable));
     }
 
+    /**
+     * If the queue is full, then this method should return false
+     */
     @Override
     public <T> boolean execute(Callable<T> callable) {
         return workQueue.offer(new FutureTask<>(callable));
     }
 
+    /**
+     * Submits a task to the queue and blocks until the space is available.
+     * Returns the Future associated with the task which can be used to get the result of the task.
+     */
     public <T> Future<T> submit(Callable<T> callable) throws InterruptedException {
         FutureTask<T> future = new FutureTask<>(callable);
         workQueue.put(future);
