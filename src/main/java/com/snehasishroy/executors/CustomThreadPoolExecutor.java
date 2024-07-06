@@ -47,11 +47,11 @@ public class CustomThreadPoolExecutor implements CustomExecutorService {
 
     @Override
     public <T> boolean execute(Callable<T> callable) {
-        return workQueue.offer(new com.snehasishroy.executors.tasks.FutureTask<>(callable));
+        return workQueue.offer(new FutureTask<>(callable));
     }
 
     public <T> Future<T> submit(Callable<T> callable) throws InterruptedException {
-        com.snehasishroy.executors.tasks.FutureTask<T> future = new FutureTask<>(callable);
+        FutureTask<T> future = new FutureTask<>(callable);
         workQueue.put(future);
         return future;
     }

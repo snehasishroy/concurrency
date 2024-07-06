@@ -17,10 +17,10 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable {
 
     private final Lock lock = new ReentrantLock();
 
-    public FutureScheduledTask(Callable<T> callable, int delay, long repeatAfterNanos, Queue<Runnable> queue) {
+    public FutureScheduledTask(Callable<T> callable, long repeatAfterNanos, Queue<Runnable> queue) {
         this.callable = callable;
         this.repeatAfterNanos = repeatAfterNanos;
-        executionAtNanos = delay + System.nanoTime();
+        executionAtNanos = repeatAfterNanos + System.nanoTime();
         this.queue = queue;
     }
 
@@ -33,6 +33,7 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable {
             lock.unlock();
             if (repeatAfterNanos > 0) {
                 // add it back to the queue
+                queue.add(new FutureScheduledTask<T>(callable, repeatAfterNanos, queue));
             }
         } catch (Exception e) {
             log.error("Error while calling the callable", e);
