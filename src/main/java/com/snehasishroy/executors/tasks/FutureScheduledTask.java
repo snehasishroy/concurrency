@@ -3,8 +3,6 @@ package com.snehasishroy.executors.tasks;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.PriorityQueue;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -28,7 +26,7 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable, Task {
         executionAtNanos = repeatAfterNanos + System.nanoTime();
         this.queue = queue;
         taskID = UUID.randomUUID().toString();
-        log.info("Submitting task with ID {}", taskID);
+        log.info("Submitting task with ID {} with expected delay {}, queue size {}", taskID, TimeUnit.NANOSECONDS.toMillis(executionAtNanos - System.nanoTime()), queue.size());
     }
 
     public FutureScheduledTask(Runnable runnable, long repeatAfterNanos, PriorityQueue<FutureScheduledTask<?>> queue) {
@@ -40,12 +38,13 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable, Task {
         executionAtNanos = repeatAfterNanos + System.nanoTime();
         this.queue = queue;
         taskID = UUID.randomUUID().toString();
-        log.info("Submitting task with ID {}, execution time {}", taskID, new Date(TimeUnit.NANOSECONDS.toMillis(executionAtNanos)));
+        log.info("Submitting task with ID {} with expected delay {}, queue size {}", taskID, TimeUnit.NANOSECONDS.toMillis(executionAtNanos - System.nanoTime()), queue.size());
     }
 
     @Override
     public void run() {
         try {
+            log.info("Lag in execution for TaskID {} is {} ms", taskID, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - executionAtNanos));
             T result = callable.call();
             lock.lock();
             this.result = result;

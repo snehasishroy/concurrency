@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -26,9 +28,8 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
         for (int i = 0; i < concurrency; i++) {
             threads.add(new Thread(() -> {
                 while (true) { // need to run the workers indefinitely
-                    log.info("Coming here");
                     lock.lock();
-                    FutureScheduledTask<?> top;
+                    FutureScheduledTask<?> runnable = null;
                     try {
                         while (queue.isEmpty()) {
                             try {
@@ -38,12 +39,15 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
                                 throw new RuntimeException(e);
                             }
                         }
-                        top = queue.peek();
+                        FutureScheduledTask<?> top = queue.peek();
                         long delayNanos = top.getDelayNanos();
                         log.info("{} found the top task with delay {} ms", Thread.currentThread().getName(), TimeUnit.NANOSECONDS.toMillis(delayNanos));
                         if (delayNanos <= 0) {
-                            queue.poll();
+                            // negative delay indicates that the task needs to be immediately executed
+                            runnable = queue.poll();
                         } else {
+                            // we need to wait for delayNanos before executing the task
+                            // during this time, an even higher priority task can also come, which will be signalled by the schedule() function
                             log.info("{} going for a sleep for {} ms until awakened", Thread.currentThread().getName(), TimeUnit.NANOSECONDS.toMillis(delayNanos));
                             doProcess.await(delayNanos, TimeUnit.NANOSECONDS);
                         }
@@ -52,8 +56,10 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
                     } finally {
                         lock.unlock();
                     }
-                    log.info("{} being executed by {}", top.getID(), Thread.currentThread().getName());
-                    top.run();
+                    if (runnable != null) {
+                        log.info("{} being executed by {}, queue size {}", runnable.getID(), Thread.currentThread().getName(), queue.size());
+                        runnable.run();
+                    }
                 }
             }, "Worker-" + i));
         }
@@ -63,20 +69,27 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
     }
 
     @Override
-    public void scheduleAtFixedRate(Runnable runnable, int repeatAfter, TimeUnit unit) throws InterruptedException {
+    public Future<Void> scheduleAtFixedRate(Runnable runnable, int repeatAfter, TimeUnit unit) throws InterruptedException {
         lock.lock();
         try {
-            queue.add(new FutureScheduledTask<>(runnable, unit.toNanos(repeatAfter), queue));
+            FutureScheduledTask<Void> future = new FutureScheduledTask<>(runnable, unit.toNanos(repeatAfter), queue);
+            queue.add(future);
+            // signal all the waiting threads
+            doProcess.signalAll();
+            return future;
         } finally {
             lock.unlock();
         }
     }
 
     @Override
-    public <T> void scheduleAtFixedRate(Callable<T> callable, int repeatAfter, TimeUnit unit) throws InterruptedException {
+    public <T> Future<T> scheduleAtFixedRate(Callable<T> callable, int repeatAfter, TimeUnit unit) throws InterruptedException {
         lock.lock();
         try {
-            queue.add(new FutureScheduledTask<>(callable, unit.toNanos(repeatAfter), queue));
+            FutureScheduledTask<T> future = new FutureScheduledTask<>(callable, unit.toNanos(repeatAfter), queue);
+            queue.add(future);
+            doProcess.signalAll();
+            return future;
         } finally {
             lock.unlock();
         }
