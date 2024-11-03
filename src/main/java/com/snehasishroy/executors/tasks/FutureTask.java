@@ -106,7 +106,7 @@ public class FutureTask<T> implements Future<T>, Runnable, Task {
         lock.lock();
         try {
             result = temp;
-            isDone.signal();
+            isDone.signal(); // this signals the thread that might be waiting on the get() method
             log.info("Result updated for TaskID {}", taskID);
         } finally {
             lock.unlock();

@@ -20,6 +20,8 @@ public class FutureScheduledTask<T> implements Future<T>, Runnable, Task {
 
     private final Lock lock = new ReentrantLock();
 
+    // As this class is accessing the PriorityQueue directly leading to a leaky abstraction -- a better way would
+    // be to make this an inner class of CustomScheduledThreadPoolExecutor, so it can access PQ directly
     public FutureScheduledTask(Callable<T> callable, long repeatAfterNanos, PriorityQueue<FutureScheduledTask<?>> queue) {
         this.callable = callable;
         this.repeatAfterNanos = repeatAfterNanos;

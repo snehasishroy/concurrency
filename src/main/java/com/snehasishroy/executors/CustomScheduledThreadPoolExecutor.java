@@ -28,7 +28,7 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
         for (int i = 0; i < concurrency; i++) {
             threads.add(new Thread(() -> {
                 while (true) { // need to run the workers indefinitely
-                    lock.lock();
+                    lock.lock(); // lock to ensure only one worker can access the contents of the PQ at a time
                     FutureScheduledTask<?> runnable = null;
                     try {
                         while (queue.isEmpty()) {
@@ -39,6 +39,7 @@ public class CustomScheduledThreadPoolExecutor implements CustomScheduledExecuto
                                 throw new RuntimeException(e);
                             }
                         }
+                        // there is something present in the queue
                         FutureScheduledTask<?> top = queue.peek();
                         long delayNanos = top.getDelayNanos();
                         log.info("{} found the top task with delay {} ms", Thread.currentThread().getName(), TimeUnit.NANOSECONDS.toMillis(delayNanos));
